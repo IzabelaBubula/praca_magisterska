@@ -3,6 +3,8 @@ import tkinter
 from datetime import datetime
 from tkinter import *
 
+from memory_profiler import profile
+
 import Grains
 import Show_plot
 from Variables import Variables, save_in_file, save_results, getStructure
@@ -22,6 +24,7 @@ def create_folder():
     Variables.RESULTS_FOLDER_NAME = results_path + "\\" + folder_name
 
 
+@profile
 def open_app():
     root.title('App')
     Variables.file_counter = 0
@@ -61,7 +64,7 @@ def open_app():
             structure = Grains.generate_initial_structure(Variables.size_x, Variables.size_y, Variables.size_z,
                                                           Variables.num_seeds)
             structure = Grains.choose_grow(structure)
-            print("I'm done")
+            print(Variables.sim_time)
             counter += 1
             save_results(structure)
         openNew(options)

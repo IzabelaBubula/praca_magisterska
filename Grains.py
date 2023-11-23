@@ -1,4 +1,6 @@
 import random
+import time
+
 import numpy as np
 import Neightbours
 from Show_plot import plot_2d_cuboid_mesh, choose_plot
@@ -41,6 +43,7 @@ def choose_grow(structure):
 
 
 def grow_grains(structure, size_x, size_y, size_z):
+    start_time = time.time()
     new_structure = np.copy(structure)
 
     for row in range(size_x):
@@ -68,6 +71,8 @@ def grow_grains(structure, size_x, size_y, size_z):
                             dominant_value = max(set(neighbor_values), key=neighbor_values.count)
                             new_structure[row, col, wid] = dominant_value
 
+    end_time = time.time()
+    Variables.sim_time = end_time - start_time
     return new_structure
 
 

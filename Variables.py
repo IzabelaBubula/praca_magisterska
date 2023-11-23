@@ -19,6 +19,7 @@ class Variables:
     file_counter = 0
     result_counter = 0
     number_of_files = 0
+    sim_time = 0
 
 
     @classmethod
@@ -52,7 +53,6 @@ def save_in_file():
 
 
 def save_results(structure):
-    print(structure)
     file_name = "results" + str(Variables.result_counter) + ".txt"
     file_path = Variables.RESULTS_FOLDER_NAME + "\\" + file_name
     with open(file_path, 'x') as file:
@@ -86,6 +86,7 @@ def getStructure(filename):
         size_z = int(lines[2].split(":")[1].strip())
 
         if size_z == 0:
+            Variables.size_z = 0
             structure = np.zeros((size_x, size_y), dtype=int)
             i = 3
             for x in range(size_x):
@@ -94,6 +95,7 @@ def getStructure(filename):
                     i += 1
         else:
             structure = np.zeros((size_x, size_y, size_z), dtype=int)
+            Variables.size_z = size_z
             i = 3
             for x in range(size_x):
                 for y in range(size_y):
