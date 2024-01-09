@@ -1,7 +1,5 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.colors import ListedColormap
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from Variables import Variables
 
@@ -11,6 +9,7 @@ def choose_plot(structure):
         plot_2d_cuboid_mesh(structure)
     elif Variables.size_z == 0:
         plot_structure(structure)
+
 
 def plot_structure(structure):
     plt.imshow(structure, cmap='viridis')
@@ -55,6 +54,7 @@ def get_right(structure):
             numbers[i][j] = structure[0][i][j]
     return numbers
 
+
 def get_front(structure):
     numbers = [[0 for _ in range(Variables.size_x)] for _ in range(Variables.size_y)]
     for i in range(Variables.size_x):
@@ -62,12 +62,14 @@ def get_front(structure):
             numbers[j][i] = structure[i][j][0]
     return numbers
 
+
 def get_back(structure):
     numbers = [[0 for _ in range(Variables.size_x)] for _ in range(Variables.size_y)]
     for i in range(Variables.size_x):
         for j in range(Variables.size_y):
             numbers[j][i] = structure[i][j][Variables.size_z - 1]
     return numbers
+
 
 def plot_2d_cuboid_mesh(structure):
     fig = plt.figure(figsize=(4, 5))

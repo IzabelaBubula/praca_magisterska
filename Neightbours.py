@@ -10,13 +10,12 @@ def choose_neighbour_2(row, col, size_x, size_y):
         if bc == "abs":
             neighbor = get_neighbors_absorbing_moore(row, col, size_x, size_y)
         elif bc == "per":
-            neighbor = get_neighbors_periodic(row, col, size_x, size_y)
+            neighbor = get_neighbors_periodic_moore(row, col, size_x, size_y)
     elif nb == "von":
         if bc == "abs":
-            neighbor = get_neighbors_absorbing_von_neumann(row, col, size_x, size_y)
+            neighbor = get_neighbors_absorbing_von(row, col, size_x, size_y)
         elif bc == "per":
             neighbor = get_neighbors_periodic_von(row, col, size_x, size_y)
-            i = 0
 
     return neighbor
 
@@ -28,14 +27,14 @@ def choose_neighbour_3(row, col, wid, size_x, size_y, size_z):
     neighbor = []
     if nb == "moore":
         if bc == "abs":
-            neighbor = get_neighbors_absorbing_moore_3d(row, col, wid, size_x, size_y, size_z)
+            neighbor = get_neighbors_absorbing_moore_3(row, col, wid, size_x, size_y, size_z)
         elif bc == "per":
-            neighbor = get_neighbors_periodic_3d(row, col, wid, size_x, size_y, size_z)
+            neighbor = get_neighbors_periodic_moore_3(row, col, wid, size_x, size_y, size_z)
     elif nb == "von":
         if bc == "abs":
-            neighbor = get_neighbors_absorbing_von_neumann_3d(row, col, wid, size_x, size_y, size_z)
+            neighbor = get_neighbors_absorbing_von_3(row, col, wid, size_x, size_y, size_z)
         elif bc == "per":
-            neighbor = get_neighbors_periodic_von_3d(row, col, wid, size_x, size_y, size_z)
+            neighbor = get_neighbors_periodic_von_3(row, col, wid, size_x, size_y, size_z)
 
     return neighbor
 
@@ -43,7 +42,7 @@ def choose_neighbour_3(row, col, wid, size_x, size_y, size_z):
 # periodicity
 
 
-def get_neighbors_periodic(row, col, size_x, size_y):
+def get_neighbors_periodic_moore(row, col, size_x, size_y):
     neighbors = []
 
     # Sąsiedztwo wertykalne
@@ -81,7 +80,7 @@ def get_neighbors_periodic_von(row, col, size_x, size_y):
     return neighbors
 
 
-def get_neighbors_absorbing_von_neumann(row, col, size_x, size_y):
+def get_neighbors_absorbing_von(row, col, size_x, size_y):
     neighbors = []
 
     # Sąsiedztwo wertykalne z uwzględnieniem absorbujących warunków brzegowych
@@ -128,9 +127,7 @@ def get_neighbors_absorbing_moore(row, col, size_x, size_y):
 
 
 # 3D
-
-
-def get_neighbors_periodic_3d(row, col, wid, size_x, size_y, size_z):
+def get_neighbors_periodic_moore_3(row, col, wid, size_x, size_y, size_z):
     neighbors = []
 
     # Sąsiedztwo wertykalne z uwzględnieniem periodycznych warunków brzegowych
@@ -172,7 +169,8 @@ def get_neighbors_periodic_3d(row, col, wid, size_x, size_y, size_z):
     return neighbors
 
 
-def get_neighbors_periodic_von_3d(row, col, wid, size_x, size_y, size_z):
+
+def get_neighbors_periodic_von_3(row, col, wid, size_x, size_y, size_z):
     neighbors = []
 
     # Sąsiedztwo wertykalne z uwzględnieniem periodycznych warunków brzegowych
@@ -190,7 +188,7 @@ def get_neighbors_periodic_von_3d(row, col, wid, size_x, size_y, size_z):
     return neighbors
 
 
-def get_neighbors_absorbing_von_neumann_3d(row, col, wid, size_x, size_y, size_z):
+def get_neighbors_absorbing_von_3(row, col, wid, size_x, size_y, size_z):
     neighbors = []
 
     # Sąsiedztwo wertykalne z uwzględnieniem absorbujących warunków brzegowych
@@ -214,7 +212,7 @@ def get_neighbors_absorbing_von_neumann_3d(row, col, wid, size_x, size_y, size_z
     return neighbors
 
 
-def get_neighbors_absorbing_moore_3d(row, col, wid, size_x, size_y, size_z):
+def get_neighbors_absorbing_moore_3(row, col, wid, size_x, size_y, size_z):
     neighbors = []
 
     # Sąsiedztwo wertykalne z uwzględnieniem absorbujących warunków brzegowych

@@ -20,6 +20,10 @@ class Variables:
     result_counter = 0
     number_of_files = 0
     sim_time = 0
+    mc_time = 0
+    ca_time = 0
+    save_time = 0
+    read_time = 0
 
 
     @classmethod
@@ -56,6 +60,10 @@ def save_results(structure):
     file_name = "results" + str(Variables.result_counter) + ".txt"
     file_path = Variables.RESULTS_FOLDER_NAME + "\\" + file_name
     with open(file_path, 'x') as file:
+        if Variables.mc == 0:
+            file.write("CA simulation time: " + str(Variables.ca_time) + "\n")
+        else:
+            file.write("MC simulation time: " + str(Variables.mc_time) + "\n")
         file.write("x: " + str(Variables.size_x) + "\n")
         file.write("y: " + str(Variables.size_y) + "\n")
         file.write("z: " + str(Variables.size_z) + "\n")
@@ -72,23 +80,22 @@ def save_results(structure):
     Variables.result_counter += 1
 
 
-
-def getStructure(filename):
+def get_structure(filename):
     file_path = Variables.RESULTS_FOLDER_NAME + "\\" + filename
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
         # Extract sizes from the first three lines
-        size_x = int(lines[0].split(":")[1].strip())
-        size_y = int(lines[1].split(":")[1].strip())
+        size_x = int(lines[1].split(":")[1].strip())
+        size_y = int(lines[2].split(":")[1].strip())
 
         # Check if size_z is present and not zero
-        size_z = int(lines[2].split(":")[1].strip())
+        size_z = int(lines[3].split(":")[1].strip())
 
         if size_z == 0:
             Variables.size_z = 0
             structure = np.zeros((size_x, size_y), dtype=int)
-            i = 3
+            i = 4
             for x in range(size_x):
                 for y in range(size_y):
                     structure[x][y] = int(lines[i].split()[-1])
@@ -96,7 +103,7 @@ def getStructure(filename):
         else:
             structure = np.zeros((size_x, size_y, size_z), dtype=int)
             Variables.size_z = size_z
-            i = 3
+            i = 4
             for x in range(size_x):
                 for y in range(size_y):
                     for z in range(size_z):
