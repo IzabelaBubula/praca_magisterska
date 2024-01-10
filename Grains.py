@@ -43,6 +43,7 @@ def choose_grow(structure):
             structure = monte_carlo_grain_growth(structure, Variables.size_x, Variables.size_y, Variables.size_z)
         end_montecarlo = time.time()
         Variables.mc_time = end_montecarlo - start_montecarlo
+        print(str(Variables.mc_time))
         return structure
     else:
         start_ca = time.time()

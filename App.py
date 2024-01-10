@@ -2,6 +2,7 @@ import os
 import tkinter
 from datetime import datetime
 from tkinter import *
+import cProfile
 
 import Grains
 import Show_plot
@@ -55,6 +56,8 @@ def open_app():
     def click_action1():
         counter = 0
         options = []
+        profiler = cProfile.Profile()
+        profiler.enable()
         while Variables.file_counter > counter:
             file_name = "variables_" + str(counter) + ".txt"
             options.append("results" + str(counter) + ".txt")
@@ -64,6 +67,8 @@ def open_app():
             structure = Grains.choose_grow(structure)
             counter += 1
             save_results(structure)
+        profiler.disable()
+        profiler.print_stats(sort='cumulative')
         open_new(options)
 
     def open_new(options):
