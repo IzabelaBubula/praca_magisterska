@@ -10,6 +10,11 @@ from Variables import Variables
 #zrwnoleglenie
 #testy wydajnociowe
 
+#lista
+#np.turple
+#przyspieszenie
+#efektywnosc
+
 def generate_initial_structure(size_x, size_y, size_z, num_seeds):
     numb = 1
     if size_z != 0:
