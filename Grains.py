@@ -1,154 +1,146 @@
+import math
 import random
-import time
 
 import numpy as np
+
 import Neightbours
 from Variables import Variables
+import pyopencl as cl
 
+def generate_initial_structure(fileData):
+    size_x = Variables.size_x
+    size_y = Variables.size_y
+    size_z = Variables.size_z
+    structure = [[[0 for _ in range(size_z)] for _ in range(size_y)] for _ in range(size_x)]
+    for f in fileData:
+        structure[f[0]][f[1]][f[2]] = f[3]
+    return structure
 
-#sekwencyjne
-#zrwnoleglenie
-#testy wydajnociowe
-
-#lista
-#np.turple
-#przyspieszenie
-#efektywnosc
-
-def generate_initial_structure(size_x, size_y, size_z, num_seeds):
-    numb = 1
-    if size_z != 0:
-        structure = np.zeros((size_x, size_y, size_z), dtype=int)
-        seeds = random.sample(range(size_x * size_y * size_z), num_seeds)
-
-        for seed in seeds:
-            # Obliczenie współżęsnych komórek x, y i z
-            x = seed // (size_y * size_z)
-            y = (seed % (size_y * size_z))// size_z
-            z = (seed % (size_y * size_z)) % size_z
-            structure[x, y, z] = numb  # Each seed has a unique identifier
-            numb += 1
-    elif size_z == 0:
-        structure = np.zeros((size_x, size_y), dtype=int)
-        seeds = random.sample(range(size_x * size_y), num_seeds)
-
-        for seed in seeds:
-            row = seed // size_x
-            col = seed % size_y
-            structure[row, col] = numb # Each seed has a unique identifier
-            numb += 1
-
+def grow(structure, grain_list, fileNumber):
+    for _ in range(Variables.num_iterations[fileNumber]):
+        structure = monte_carlo_grain_growth_opencl(structure, grain_list, fileNumber)
     return structure
 
 
-def choose_grow(structure):
-    if Variables.mc == 1:
-        start_montecarlo = time.time()
-        for _ in range(Variables.num_iterations):
-            structure = monte_carlo_grain_growth(structure, Variables.size_x, Variables.size_y, Variables.size_z)
-        end_montecarlo = time.time()
-        Variables.mc_time = end_montecarlo - start_montecarlo
-        print(str(Variables.mc_time))
-        return structure
-    else:
-        start_ca = time.time()
-        while 0 in structure:
-            structure = grow_grains(structure, Variables.size_x, Variables.size_y, Variables.size_z)
-        end_ca = time.time()
-        Variables.ca_time = end_ca - start_ca
-        print(str(Variables.ca_time))
-        return structure
+def monte_carlo_grain_growth_opencl(structure, grain_list, fileNumber):
+    # Create OpenCL context and queue
+    platform = cl.get_platforms()[0]
+    device = platform.get_devices()[0]
+    context = cl.Context([device])
+    queue = cl.CommandQueue(context)
 
+    # Prepare the data
+    size_x = Variables.size_x
+    size_y = Variables.size_y
+    size_z = Variables.size_z
+    structure_np = np.array(structure, dtype=np.int32).flatten()
+    grain_list_np = np.array(grain_list, dtype=np.int32).flatten()
 
-def grow_grains(structure, size_x, size_y, size_z):
-    new_structure = np.copy(structure)
+    # Allocate GPU memory
+    mf = cl.mem_flags
+    structure_buf = cl.Buffer(context, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=structure_np)
+    grain_list_buf = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=grain_list_np)
 
-    for row in range(size_x):
-        for col in range(size_y):
-            if size_z == 0:
-                if new_structure[row, col] == 0:
-                    neighbors = Neightbours.choose_neighbour_2(row, col, size_x, size_y)
+    # OpenCL kernel code
+    kernel_code = """
+            __kernel void grain_growth(
+                __global int* structure,
+                const unsigned int size_x,
+                const unsigned int size_y,
+                const unsigned int size_z,
+                const unsigned int neighborhood_type,
+                const unsigned int boundary_condition
+            ) {
+                int index = get_global_id(0);
+                if (structure[index] == 0) return;
+                printf("index: %d", index);
 
-                    neighbor_values = [structure[n_row, n_col] for n_row, n_col in neighbors if
-                                       structure[n_row, n_col] != 0]
+                int x = index % size_x;
+                int y = (index / size_x) % size_y;
+                int z = index / (size_x * size_y);
 
-                    if neighbor_values:
-                        dominant_value = max(set(neighbor_values), key=neighbor_values.count)
-                        new_structure[row, col] = dominant_value
-            elif size_z != 0:
-                for wid in range(size_z):
-                    if structure[row, col, wid] == 0:
-                        neighbors = Neightbours.choose_neighbour_3(row, col, wid, size_x, size_y, size_z)
+                int neighbors[26][3];
+                int num_neighbors = 0;
 
-                        neighbor_values = [structure[n_row, n_col, n_wid] for n_row, n_col, n_wid in neighbors if
-                                           structure[n_row, n_col, n_wid] != 0]
+                // Select neighbors based on the neighborhood and boundary conditions
+                if (neighborhood_type == 0) {  // Moore
+                    if (boundary_condition == 0) {  // Absorbing
+                        // Absorbing Moore neighborhood
+                        if (x > 0) { neighbors[num_neighbors][0] = x - 1; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = z; num_neighbors++; }
+                        if (x < size_x - 1) { neighbors[num_neighbors][0] = x + 1; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = z; num_neighbors++; }
+                        if (y > 0) { neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = y - 1; neighbors[num_neighbors][2] = z; num_neighbors++; }
+                        if (y < size_y - 1) { neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = y + 1; neighbors[num_neighbors][2] = z; num_neighbors++; }
+                        if (z > 0) { neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = z - 1; num_neighbors++; }
+                        if (z < size_z - 1) { neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = z + 1; num_neighbors++; }
+                    } else {  // Periodic
+                        // Periodic Moore neighborhood
+                        neighbors[num_neighbors][0] = (x - 1 + size_x) % size_x; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = z; num_neighbors++;
+                        neighbors[num_neighbors][0] = (x + 1) % size_x; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = z; num_neighbors++;
+                        neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = (y - 1 + size_y) % size_y; neighbors[num_neighbors][2] = z; num_neighbors++;
+                        neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = (y + 1) % size_y; neighbors[num_neighbors][2] = z; num_neighbors++;
+                        neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = (z - 1 + size_z) % size_z; num_neighbors++;
+                        neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = (z + 1) % size_z; num_neighbors++;
+                    }
+                } else {  // von Neumann
+                    if (boundary_condition == 0) {  // Absorbing
+                        // Absorbing von Neumann neighborhood
+                        if (x > 0) { neighbors[num_neighbors][0] = x - 1; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = z; num_neighbors++; }
+                        if (x < size_x - 1) { neighbors[num_neighbors][0] = x + 1; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = z; num_neighbors++; }
+                        if (y > 0) { neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = y - 1; neighbors[num_neighbors][2] = z; num_neighbors++; }
+                        if (y < size_y - 1) { neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = y + 1; neighbors[num_neighbors][2] = z; num_neighbors++; }
+                        if (z > 0) { neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = z - 1; num_neighbors++; }
+                        if (z < size_z - 1) { neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = z + 1; num_neighbors++; }
+                    } else {  // Periodic
+                        // Periodic von Neumann neighborhood
+                        neighbors[num_neighbors][0] = (x - 1 + size_x) % size_x; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = z; num_neighbors++;
+                        neighbors[num_neighbors][0] = (x + 1) % size_x; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = z; num_neighbors++;
+                        neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = (y - 1 + size_y) % size_y; neighbors[num_neighbors][2] = z; num_neighbors++;
+                        neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = (y + 1) % size_y; neighbors[num_neighbors][2] = z; num_neighbors++;
+                        neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = (z - 1 + size_z) % size_z; num_neighbors++;
+                        neighbors[num_neighbors][0] = x; neighbors[num_neighbors][1] = y; neighbors[num_neighbors][2] = (z + 1) % size_z; num_neighbors++;
+                    }
+                }
 
-                        if neighbor_values:
-                            dominant_value = max(set(neighbor_values), key=neighbor_values.count)
-                            new_structure[row, col, wid] = dominant_value
-    return new_structure
+                // Simple linear congruential generator (LCG) for random number generation
+                uint seed = (index + 1) * 123456789;
+                seed = (1103515245 * seed + 12345) % 2147483648;
+                float rand_val = seed / 2147483648.0f;
 
+                // Random choice and grain growth logic
+                int rand_index = (int)(rand_val * num_neighbors);
+                int nx = neighbors[rand_index][0];
+                int ny = neighbors[rand_index][1];
+                int nz = neighbors[rand_index][2];
+                int neighbor_index = nz * size_x * size_y + ny * size_x + nx;
+                
+                printf("index %d, neig_index: %d", index, neighbor_index);
 
-def monte_carlo_grain_growth(structure, size_x, size_y, size_z):
-    if Variables.size_z == 0:
-        for row in range(size_x):
-            for col in range(size_y):
-                now_ener = calculate_energy(structure, row, col)
-                nv = random.randint(0, Variables.num_seeds)
+                if (structure[neighbor_index] == 0) {
+                    float delta_energy = 1.0f;
+                    float probability = exp(-delta_energy / structure[index]);
+                    if (rand_val < probability) {
+                        structure[neighbor_index] = structure[index];
+                    }
+                }
+            }
+            """
 
-                structure[row, col] = nv
-                new_ener = calculate_energy(structure, row, col)
+    # Compile the kernel
+    program = cl.Program(context, kernel_code).build()
 
-                ener_change = new_ener - now_ener
+    # Kernel execution parameters
+    neighborhood_type = 0 if Variables.neighborhood[fileNumber] == "moore" else 1
+    boundary_condition = 0 if Variables.boundary_conditions[fileNumber] == "abs" else 1
 
-                if ener_change > 0:
-                    prop = random.random()
-                    if prop > 0.5:
-                        structure[row, col] = now_ener
+    # Execute the kernel
+    kernel = program.grain_growth
+    kernel.set_args(
+        structure_buf, np.uint32(size_x), np.uint32(size_y), np.uint32(size_z),
+        np.uint32(neighborhood_type), np.uint32(boundary_condition)
+    )
+    cl.enqueue_nd_range_kernel(queue, kernel, (structure_np.size,), None)
 
-        return structure
-    else:
-        for row in range(size_x):
-            for col in range(size_y):
-                for wid in range(size_z):
-                    now_ener = calculate_energy_3(structure, row, col, wid)
-                    nv = random.randint(0, Variables.num_seeds)
+    # Copy the result back to the host
+    cl.enqueue_copy(queue, structure_np, structure_buf).wait()
 
-                    structure[row, col, wid] = nv
-                    new_ener = calculate_energy_3(structure, row, col, wid)
-
-                    ener_change = new_ener - now_ener
-
-                    if ener_change > 0:
-                        prop = random.random()
-                        if prop > 0.5:
-                            structure[row, col, wid] = now_ener
-        return structure
-
-
-def calculate_energy(structure, row, col):
-    current_value = structure[row, col]
-    neighbors = Neightbours.choose_neighbour_2(row, col, Variables.size_x, Variables.size_y)
-
-    different_energy_neighbors = 0
-
-    for neighbor in neighbors:
-        n_row, n_col = neighbor
-        if structure[n_row][n_col] != current_value:
-            different_energy_neighbors += 1
-
-    return different_energy_neighbors
-
-
-def calculate_energy_3(structure, row, col, wid):
-    current_value = structure[row, col, wid]
-    neighbors = Neightbours.choose_neighbour_3(row, col, wid, Variables.size_x, Variables.size_y, Variables.size_z)
-
-    different_energy_neighbors = 0
-
-    for neighbor in neighbors:
-        n_row, n_col, n_wid = neighbor
-        if structure[n_row][n_col][n_wid] != current_value:
-            different_energy_neighbors += 1
-
-    return different_energy_neighbors
+    return structure_np.reshape((size_x, size_y, size_z)).tolist()

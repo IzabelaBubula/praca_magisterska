@@ -3,26 +3,6 @@ from matplotlib import pyplot as plt
 
 from Variables import Variables
 
-
-def choose_plot(structure):
-    if Variables.size_z != 0:
-        plot_2d_cuboid_mesh(structure)
-    elif Variables.size_z == 0:
-        plot_structure(structure)
-
-
-def plot_structure(structure):
-    plt.imshow(structure, cmap='viridis')
-    plt.show()
-
-
-def convert_to_array(structure, size_x):
-    energy_array = np.zeros((size_x))
-    for col in range(size_x):
-        energy_array[col] = structure[col].q
-    plot_structure(energy_array)
-
-
 def get_top(structure):
     numbers = [[0 for _ in range(Variables.size_x)] for _ in range(Variables.size_z)]
     for i in range(Variables.size_x):
@@ -100,4 +80,58 @@ def plot_2d_cuboid_mesh(structure):
     plt.imshow(get_bottom(structure), cmap='viridis')
     plt.axis('off')
 
+    plt.show()
+
+def threeDFigure(structure):
+    # Stworzenie figurki i dodanie wykresu 3D
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Rozpakowanie wymiarów tablicy
+    x = Variables.size_x
+    y = Variables.size_y
+    z = Variables.size_z
+
+    # Tworzenie siatki współrzędnych
+    x_vals, y_vals, z_vals = np.indices((x, y, z))
+
+    # Przekształcenie współrzędnych i wartości do jednowymiarowych tablic
+    x_vals = x_vals.flatten()
+    y_vals = y_vals.flatten()
+    z_vals = z_vals.flatten()
+    structureToShow = np.array(structure);
+    values = structureToShow.flatten()
+
+    norm = plt.Normalize(values.min(), values.max())
+    colors = plt.cm.viridis(norm(values))
+
+    # Tworzenie wykresu scatter
+    scatter = ax.scatter(x_vals, y_vals, z_vals, c=colors, marker='o', s=100)
+
+    # Dodanie kolorowej legendy
+    cbar = fig.colorbar(scatter, ax=ax, shrink=0.5, aspect=5)
+    cbar.set_label('Wartości')
+
+    ax.set_yticks(np.arange(0, y, 1))
+
+    # Usunięcie linii osi i linii pomocniczych
+    ax.xaxis.pane.fill = False
+    ax.yaxis.pane.fill = False
+    ax.zaxis.pane.fill = False
+
+    ax.grid(False)
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+
+    # Usunięcie nazw osi
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_zlabel('')
+
+    # Tytuł wykresu
+    ax.set_title('Projekcja 3D')
+
+    # Wyświetlenie wykresu
     plt.show()

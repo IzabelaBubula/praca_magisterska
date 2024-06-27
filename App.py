@@ -2,12 +2,11 @@ import os
 import tkinter
 from datetime import datetime
 from tkinter import *
-import cProfile
 
 import Grains
+import ReadFile
 import Show_plot
-from Variables import Variables, save_in_file, save_results, get_structure
-
+from Variables import Variables, get_structure, save_in_file
 
 root = Tk()
 t_1 = Text(root, wrap=WORD)
@@ -28,68 +27,58 @@ def open_app():
     root.title('App')
     Variables.file_counter = 0
 
-    create_folder()
+    # create_folder()
     moore = IntVar()
     von = IntVar()
     pre = IntVar()
     abs = IntVar()
-    aut = IntVar()
-    mc = IntVar()
-    x_val = IntVar()
-    y_val = IntVar()
-    z_val = IntVar()
     itera = IntVar()
-    seed = IntVar()
 
     def click_action():
-        Variables.size_x = x_val.get()
-        Variables.size_y = y_val.get()
-        Variables.size_z = z_val.get()
-        Variables.num_seeds = seed.get()
-        Variables.num_iterations = itera.get()
-        Variables.boundary_conditions = 'abs' if abs.get() == 1 else 'per'
-        Variables.mc = 1 if mc.get() == 1 else 0
-        Variables.neighborhood = 'moore' if moore.get() == 1 else 'von'
-
-        save_in_file()
+        Variables.num_iterations.append(itera.get())
+        Variables.boundary_conditions.append('abs' if abs.get() == 1 else 'per')
+        Variables.neighborhood.append('moore' if moore.get() == 1 else 'von')
 
     def click_action1():
-        counter = 0
+        # ReadFile.choose_directory()
+        # print(Variables.file_names)
+        # for n in range(len(Variables.file_names)):
         options = []
-        profiler = cProfile.Profile()
-        profiler.enable()
-        while Variables.file_counter > counter:
-            file_name = "variables_" + str(counter) + ".txt"
-            options.append("results" + str(counter) + ".txt")
-            Variables.assign_the_variables(Variables.FOLDER_NAME + "\\" + file_name)
-            structure = Grains.generate_initial_structure(Variables.size_x, Variables.size_y, Variables.size_z,
-                                                          Variables.num_seeds)
-            structure = Grains.choose_grow(structure)
-            counter += 1
-            save_results(structure)
-        profiler.disable()
-        profiler.print_stats(sort='cumulative')
-        open_new(options)
+        fileData = ReadFile.file_to_array(Variables.file_names[0])
+        print("Start counting")
+        structure = Grains.generate_initial_structure(fileData)
+        fileNumber = 0
+        structure = Grains.grow(structure, fileData, fileNumber)
+        Variables.structure = structure
+        open_show(options)
 
-    def open_new(options):
+    def showThreeD():
+        structure = Variables.structure
+        Show_plot.threeDFigure(structure)
+
+    def showGrid():
+        structure = Variables.structure
+        Show_plot.plot_2d_cuboid_mesh(structure)
+
+    def open_show(options):
         new = Toplevel(root)
         new.geometry("750x250")
         new.title("Show plot")
 
-        number = StringVar()
-        number.set(options[0])
+        # number = StringVar()
+        # number.set(options[0])
 
-        w = OptionMenu(new, number, *options)
-        w.pack()
+        # w = OptionMenu(new, number, *options)
+        # w.pack()
 
-        def choose():
-            structure = get_structure(number.get())
-            Show_plot.choose_plot(structure)
+        button = Button(new, text="Show 3D", command=lambda: showThreeD())
+        button.pack()
 
-        button = Button(new, text="choose file to show", command=choose)
+        button = Button(new, text="Show grid", command=lambda: showGrid())
         button.pack()
 
         new.mainloop()
+
 
     tkinter.Label(root, text="Choose neighbourhood").grid(row=2, sticky=W)
     tkinter.Checkbutton(root, text="Moore", variable=moore, onvalue=1, offvalue=0).grid(row=3, column=0, sticky=W)
@@ -99,29 +88,16 @@ def open_app():
     tkinter.Checkbutton(root, text="Periodic", variable=pre, onvalue=1, offvalue=0).grid(row=5, column=0, sticky=W)
     tkinter.Checkbutton(root, text="Absorbing", variable=abs, onvalue=1, offvalue=0).grid(row=5, column=1, sticky=W)
 
-    tkinter.Label(root, text="x size:").grid(row=7, column=0, sticky=W)
-    tkinter.Entry(root, textvariable=x_val).grid(row=7, column=1, sticky=W)
-
-    tkinter.Label(root, text="y size:").grid(row=7, column=2, sticky=W)
-    tkinter.Entry(root, textvariable=y_val).grid(row=7, column=3, sticky=W)
-
-    tkinter.Label(root, text="z size:").grid(row=7, column=4, sticky=W)
-    tkinter.Entry(root, textvariable=z_val).grid(row=7, column=5, sticky=W)
-
     tkinter.Label(root, text='iterations:').grid(row=8, column=0, sticky=W)
     tkinter.Entry(root, textvariable=itera).grid(row=8, column=1, sticky=W)
 
-    tkinter.Label(root, text='nuber of seeds:').grid(row=9, column=0, sticky=W)
-    tkinter.Entry(root, textvariable=seed).grid(row=9, column=1, sticky=W)
-
-    tkinter.Label(root, text="Choose growth").grid(row=10, sticky=W)
-    tkinter.Checkbutton(root, text="MonteCarlo", variable=mc, onvalue=1, offvalue=0).grid(row=11, column=0, sticky=W)
-    tkinter.Checkbutton(root, text="Automations", variable=aut, onvalue=1, offvalue=0).grid(row=11, column=1, sticky=W)
-
-    b_1 = Button(root, text="Save data", width=8, command=lambda: click_action())
+    b_1 = Button(root, text="Open K Files", width=8, command=ReadFile.open_files)
     b_1.grid(row=12, column=4, sticky=W)
 
-    b_1 = Button(root, text="Count", width=8, command=lambda: click_action1())
+    b_1 = Button(root, text="Save data", width=8, command=lambda: click_action())
     b_1.grid(row=12, column=5, sticky=W)
+
+    b_1 = Button(root, text="Count", width=8, command=lambda: click_action1())
+    b_1.grid(row=12, column=6, sticky=W)
 
     root.mainloop()

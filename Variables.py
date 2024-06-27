@@ -2,58 +2,39 @@ import os
 
 import numpy as np
 
-from Read_file import read_input_file
-
 
 class Variables:
-    num_iterations = 0
-    num_seeds = 0
-    boundary_conditions = ""
-    neighborhood = ""
-    size_x: int = 0
-    size_y = 0
-    size_z = 0
-    mc = 0
-    FOLDER_NAME = ""
-    RESULTS_FOLDER_NAME = ""
-    file_counter = 0
-    result_counter = 0
-    number_of_files = 0
-    sim_time = 0
-    mc_time = 0
-    ca_time = 0
-    save_time = 0
-    read_time = 0
+    num_iterations = []
+    boundary_conditions = []
+    neighborhood = []
+    file_names = []
+    save_directory_name = ""
+    size_x = 11
+    size_y = 11
+    size_z = 3
+    start_informations = []
+    structure = [[[]]]
 
 
-    @classmethod
-    def assign_the_variables(cls, file_name):
-        file_path = file_name # Replace with the actual file path
-        input_params = read_input_file(file_path)
-
-        cls.size_x = input_params['size x']
-        cls.size_y = input_params['size y']
-        cls.size_z = input_params['size z']
-        cls.neighborhood = input_params['neighbourhood']
-        cls.boundary_conditions = input_params['boundary conditions']
-        cls.num_seeds = input_params['number of seeds']
-        cls.num_iterations = input_params['number of iterations']
-        cls.mc = input_params['monte_carlo']
+    # @classmethod
+    # def assign_the_variables(cls, file_name):
+    #     file_path = file_name # Replace with the actual file path
+    #     input_params = read_input_file(file_path)
+    #
+    #     cls.neighborhood = input_params['neighbourhood']
+    #     cls.boundary_conditions = input_params['boundary conditions']
+    #     cls.num_seeds = input_params['number of seeds']
+    #     cls.num_iterations = input_params['number of iterations']
+    #     cls.mc = input_params['monte_carlo']
 
 
-def save_in_file():
-    file_name = "variables_" + str(Variables.file_counter) + ".txt"
-    file_path = Variables.FOLDER_NAME + "\\" + file_name
+def save_in_file(fileNumber):
+    file_name = "result_" + str(Variables.file_names[fileNumber]) + ".txt"
+    file_path = Variables.save_directory_name + "\\" + file_name
     with open(file_path, 'x') as file:
-        file.write('size x : ' + str(Variables.size_x) + '\n')
-        file.write('size y : ' + str(Variables.size_y) + '\n')
-        file.write('size z : ' + str(Variables.size_z) + '\n')
         file.write('neighbourhood : ' + Variables.neighborhood + '\n')
         file.write('boundary conditions : ' + Variables.boundary_conditions + '\n')
-        file.write('number of seeds : ' + str(Variables.num_seeds) + '\n')
         file.write('number of iterations: ' + str(Variables.num_iterations) + '\n')
-        file.write('monte_carlo: ' + str(Variables.mc) + '\n')
-    Variables.file_counter += 1
 
 
 def save_results(structure):
